@@ -1,0 +1,261 @@
+---
+layout: default
+title: JSON-RPC接口的几种调用方式范例
+---
+##JSON-RPC接口的几种调用方式范例
+#####PHP客户端调用示例 
+```php
+<?php 
+  include(dirname(__FILE__)."/lib/client/JsonRpcClient.php");
+  $client = new JsonRpcClient("http://192.168.1.235/gis/v1/");
+  $response = $client->getSystemProperties();
+  echo $response->result;
+?> 
+
+```
+#####JavaScript客户端调用示例 
+	
+基于`jsonrpcjs`的`JavaScript`客户端调用示例：
+```javascript
+var rpc = new jsonrpc.JsonRpc('http://192.168.1.235/gis/v1');
+rpc.call('getSystemProperties', function(result){
+	alert(result);
+}); 
+
+//或者 jqueryx
+$.post({
+	url:"",
+	data: {},
+	success:function(e) {
+	}
+});
+```
+
+##接口示例##
+#####接口统一使用方法#####
+**接口地址：**
+```
+http://192.168.1.235/gis/v1 (暂定)
+```
+**提交方式 （POST）：**
+**- POST**
+**参数** (以杭州为例)
+```
+{
+		"method : "方法名",
+		"params": "参数",
+		"id": 请求唯一标识,
+		"token":"TOEKN"
+}
+```
+- `method` 方法列表  和`params`  约束，参见  [GIS Web Services.pdf](GIS Web Services.pdf) 【吴老师提供】
+- Javascript模块， 请求方式以 `AJAX` 方式请求， 采用 `jquery `的`POST` 方法 （暂定），jquery最新类库参见 [jquery 3.1.1]([`jquery ` ](https://code.jquery.com/jquery-3.1.1.min.js)
+- PHP 模块， 采用 ` JsonRPC`  方式 ，类库参见 [fguillot/JsonRPC](https://github.com/fguillot/JsonRPC)
+
+#####返回结果格式：(参考各输出图形使用格式)#####
+参见   [GIS产品化应用端接口文档v1.0_20161214.docx](GIS产品化应用端接口文档v1.0_20161214.docx)
+
+错误结果参见 [json-rpc规范](http://wiki.geekdream.com/Specification/json-rpc_2.0.html)
+
+##接口列表
+***查询热力图数据***
+- **获取指定区域的热力图数据**  
+-- 请求参数：
+```
+{
+		"jsonrpc": "2.0", 
+		"method : "get_regional_distribution",
+		"params": {
+			"zoom" :17,
+			"time_span": ｛
+				"begin" :"2016-12-24",
+				"end" : "2016-12-26"
+			},
+			"geo":{
+				"region_id":["NO00001","NO00002"],
+				"geo_limit": { 
+					"$geoWithin" : {"$center": [-74, 40.74], 10}
+				}
+			}, 
+			"reference":"baidu",
+			"return_format":"centerpoint"
+		},
+		"id":3
+}
+```
+-- 返回结果
+```
+{
+	"jsonrpc": "2.0",
+	"result": [
+			{"lng":120.3456, "lat":"23.4543", "cnt":10},
+			{"lng":120.3456, "lat":"23.4543", "cnt":12},
+			{"lng":120.3456, "lat":"23.4543", "cnt":4},
+			{"lng":120.3456, "lat":"23.4543", "cnt":8},
+			{"lng":120.3456, "lat":"23.4543", "cnt":10},
+			{"lng":120.3456, "lat":"23.4543", "cnt":20}
+		],
+	"id":3
+}
+```
+
+- **地区 ， 时段， 格点数据 （全量）**
+-- 请求参数：
+```
+{
+		"jsonrpc": "2.0",
+		"method : "get_regional_distribution",
+		"params": {
+			"zoom" :17,
+			"time_span": ｛
+				"begin" :"2016-12-24",
+				"end" : "2016-12-26"
+			},
+			"geo":{
+				"region_id":["NO00001","NO00002"],
+				"geo_limit": { 
+					"$geoWithin" : {"$center": [-74, 40.74], 10}
+				}
+			}, 
+			"reference":"baidu",
+			"return_format":"multipoint"
+		},
+		"id":4
+}
+```
+-- 返回结果
+```
+{
+	"jsonrpc": "2.0",
+	"result":  [
+			{"geometry":  {"type":"MultiPoint", "coordinates":[[121.1234,23.4567], [122.1234,22.4567]], "cnt":152},
+			{"geometry":  {"type":"MultiPoint", "coordinates":[[121.1234,23.4567], [122.1234,22.4567]], "cnt":152},
+			{"geometry":  {"type":"MultiPoint", "coordinates":[[121.1234,23.4567], [122.1234,22.4567]], "cnt":152},
+			{"geometry":  {"type":"MultiPoint", "coordinates":[[121.1234,23.4567], [122.1234,22.4567]], "cnt":152},
+		],
+		"id":4
+}
+```
+- 地区 ， 时段， 总用户数量（全量）
+- 地区 ， 时段， 总格点数（全量）
+
+**用户提取**
+- 地区， 区域（特定经纬度范围， 矩形， 圆形）范围， 热力图数据
+- 地区， 区域（特定经纬度范围， 矩形， 圆形）范围， 格点数据
+- 地区， 区域（特定经纬度范围， 矩形， 圆形）范围， 人群数量查询
+- 地区， 区域（特定经纬度范围， 矩形， 圆形）范围， 人群下载
+- 地区， 区域（特定经纬度范围， 矩形， 圆形）范围， 网站/APP/关键字/偏好类别，人群下载
+
+
+**用户筛选**
+- 地区， 商圈/景点， 热力图
+- 地区， 商圈/景点， 格点图数据
+- 地区， 商圈/景点， 用户数（相对总量）
+- 地区，2G/3G/4G/短信/通话/位置/网络，热力图
+- 地区，2G/3G/4G/短信/通话/位置/网络，格点数
+- 地区，2G/3G/4G/短信/通话/位置/网络，总用户数
+- 地区，2G/3G/4G/短信/通话/位置/网络，格点数据
+- 地区，二级区域（特定区域），热力图数据
+- 地区，二级区域，手机操作系统（top10）
+-- 请求参数(假设)：
+```
+{
+		"jsonrpc": "2.0",
+		"method : "group_and_count",
+		"params": {
+			"zoom" :17,
+			"time_span": ｛
+				"begin" :"2016-12-24",
+				"end" : "2016-12-26"
+			},
+			"tag"  : {"手机操作系统": -1},
+			"limit" : 10,
+			"geo":{
+				"region_id":["NO00001"],
+				"geo_limit": { }
+			},
+			"is_merge": 1,
+			"return_format": "standard"
+		},
+		"id": 5
+}
+```
+-- 返回结果 (假设)：
+```
+{
+	"jsonrpc": "2.0",
+	"result": {
+			"keys" :  ["android", "ios", "window phone", "other"],
+			"values" : [12345, 4445, 223, 1223]
+		},
+	"id": 5
+}
+```
+- 地区，二级区域，手机品牌（top10）
+- 地区，二级区域，热门搜索榜（top10）
+- 地区，二级区域，应用排行榜（top10）
+- 地区，二级区域，网站访问排行榜 （top10）
+- 地区，二级区域（特定区域），热力图数据
+- 地区，二级区域，手机操作系统（top10）
+- 地区，二级区域，手机品牌（top10）
+- 地区，二级区域，热门搜索榜（top10）
+- 地区，二级区域，应用排行榜（top10）
+- 地区，二级区域，网站访问排行榜 （top10）
+- 地区， 区域（特定经纬度范围， 矩形， 圆形）范围， 热力图数据
+- 地区， 区域（特定经纬度范围， 矩形， 圆形）范围， 最近N分钟，统计数据
+-- 请求参数：
+```
+{
+		"jsonrpc": "2.0",
+		"method : "get_historical_count",
+		"params": {
+			"zoom" :17,
+			"interval"：3600，
+			"time_span": ｛
+				"begin" :"2016-12-25",
+				"end" : "2016-12-26"
+			},
+			"tag"  : {},
+			"geo":{
+				"region_id":["NO00001"],
+				"geo_limit": { 
+					"$geoWithin" : {"$center": [-74, 40.74], 10]}
+				}
+			},
+			"time_format":"%H", 
+			"return_format":"standard"
+		},
+		"id": 6
+}
+```
+-- 返回结果
+```
+{
+	"jsonrpc": "2.0",
+	"result": {
+			"times" :  ["1", "2", "3", "4","...", 24"],
+			"counts" : [153, 445, 234, 234,...,, 1223]
+		},
+	"id": 6
+}
+```
+- 室内热力图部分暂不列出
+
+**杭州滨江外来人口管理**
+- 1.地区， 区域（特定经纬度范围， 矩形， 圆形）范围 ，时间范围，画像数据（男女比例，通讯消费能力，年龄，新闻阅读偏好， 话题关注偏好，APP偏好， 搜索偏好， 套餐， 通话市场）
+- 地区， 区域（特定经纬度范围， 矩形， 圆形）范围 ，来源地，时间范围，画像数据（男女比例，通讯消费能力，年龄，新闻阅读偏好， 话题关注偏好，APP偏好， 搜索偏好， 套餐， 通话市场）
+
+**特定区域数据查询**
+- 地区， 区域（特定经纬度范围， 矩形， 圆形）范围， 热力图数据
+- 地区， 区域（特定经纬度范围， 矩形， 圆形）范围， 人群数量查询
+- 地区， 区域（特定经纬度范围， 矩形， 圆形）范围， 人群数量分时统计
+- 地区，区域（特定经纬度范围， 矩形， 圆形）范围 ，时间范围，画像数据（男女比例，通讯消费能力，年龄，新闻阅读偏好， 话题关注偏好，APP偏好， 搜索偏好， 套餐， 通话市场）
+- 地区，来源（外省/本省/本市），各地区占比数
+- 地区， 区域（特定经纬度范围， 矩形， 圆型）范围， 分时数据
+- 地区， 区域（特定经纬度范围， 矩形， 圆型）范围， 按天统计数据
+- 地区， 区域（特定经纬度范围， 矩形， 圆形）范围 ，时间范围，画像数据（男女比例，通讯消费能力，年龄，新闻阅读偏好， 话题关注偏好，APP偏好， 搜索偏好， 套餐， 通话市场）
+- 地区， 区域（特定经纬度范围， 矩形， 圆形）范围 ，月份， （通讯、套餐、 4G用户占比）
+
+
+
+    
