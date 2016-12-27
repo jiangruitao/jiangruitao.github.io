@@ -4,30 +4,9 @@ title: PHP项目部署CHECKLIST
 ---
 <h3>{{ page.title }}</h3>
 <p>
-	checklist
-
-1. 检查数据库存连接是否正确
-2. 检查项目根目录权限以及子目录 是否www:www拥有
-3. 检查 session 存储目录是否可写入 
-	一般(/etc/php-fpm.d/www.conf)
-    php_value[session.save_path]    = /var/lib/php-fpm/session
-	php_value[soap.wsdl_cache_dir]  = /var/lib/php-fpm/wsdlcache
-4. 检查 /etc/php.ini 中以下选项是否配置正确：
-	date.timezone = PRC
-	upload_max_filesize = 20M
-	memory_limit = 1024M
-	disable_functions = phpinfo,exec,passthru,shell_exec,system,proc_open,popen,parse_ini_file,show_source 
-5. 检查nginx配置文件的 网站更目录，和域名是否设置正确。
-6. 检查应用数据库，是否正确导入。
-
-
-下线checklist
-
-1. 检查nginx 端服务是否停止。（直接中断服务 OR 提示关闭页面）
-2. 检查配套定时任务或者守护进程是否关闭
-3. 检查数据库是否需要导出备份
-4. 客户或者接口人是否通知到。
-
+<h4 id="上线checklist"><a name="上线checklist" href="#上线checklist"></a>上线checklist</h4><ol>
+<li>检查数据库存连接是否正确</li><li>检查项目根目录权限以及子目录 是否www:www拥有</li><li>检查 session 存储目录是否可写入<br> 一般(/etc/php-fpm.d/www.conf)<br> php_value[session.save_path]    = /var/lib/php-fpm/session<br> php_value[soap.wsdl_cache_dir]  = /var/lib/php-fpm/wsdlcache</li><li>检查 /etc/php.ini 中以下选项是否配置正确：<br> date.timezone = PRC<br> upload_max_filesize = 20M<br> memory_limit = 1024M<br> disable_functions = phpinfo,exec,passthru,shell_exec,system,proc_open,popen,parse_ini_file,show_source </li><li>检查nginx配置文件的 网站更目录，和域名是否设置正确。</li><li>检查应用数据库，是否正确导入。</li></ol><h4 id="下线checklist"><a name="下线checklist" href="#下线checklist"></a>下线checklist</h4><ol>
+<li>检查nginx 端服务是否停止。（直接中断服务 OR 提示关闭页面）</li><li>检查配套定时任务或者守护进程是否关闭</li><li>检查数据库是否需要导出备份</li><li>客户或者接口人是否通知到。</li></ol>
 </p>
 <p>
 陆续更新中。。。
