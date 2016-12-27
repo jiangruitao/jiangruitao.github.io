@@ -1,0 +1,137 @@
+---
+layout: default
+title: PHP5.6新特性介绍
+---
+<h3>{{ page.title }}</h3>
+<p></p>
+<p>PHP5.6已经发布Alpha版，预示着下一个大版本的升级即将到来，PHP5.6带来了哪些新特性？本文将介绍这些特性，并讨论它们可以给开发者带来哪些好处。</p>
+<p><strong>常量标量表达式(Constant scalar expressions)</strong></p>
+<p>在常量、属性声明和函数参数默认值声明时，以前版本只允许常量值，PHP5.6开始允许使用包含数字、字符串字面值和常量的标量表达式。</p>
+<pre><code>&lt;?php
+    const ONE = 1;
+    const TWO = ONE * 2;
+
+    class C {
+    const THREE = TWO + 1;
+    const ONE_THIRD = ONE / self::THREE;
+    const SENTENCE = 'The value of '.THREE.' is 3';
+
+    public function f($a = ONE + self::THREE) {
+        return $a;
+    }
+}
+
+echo (new C)-&gt;f()."\n";
+echo C::SENTENCE;
+</code></pre>
+
+<p>上面代码输出：</p>
+<pre><code>4
+The value of THREE is 3
+</code></pre>
+
+<p><strong>可变参数函数(Variadic functions via ...)</strong></p>
+<p>可变参数函数 的实现， 不再依赖func<em>get</em>args()函数，现在可以通过新增的操作符 ... 更简洁地实现。 </p>
+<pre><code>&lt;?php
+function f($req, $opt = null, ...$params) {
+    // $params is an array containing the remaining arguments.
+    printf('$req: %d; $opt: %d; number of params: %d'."\n",
+       $req, $opt, count($params));
+}
+
+f(1);
+f(1, 2);
+f(1, 2, 3);
+f(1, 2, 3, 4);
+f(1, 2, 3, 4, 5);
+</code></pre>
+
+<p>上面代码输出：</p>
+<pre><code>$req: 1; $opt: 0; number of params: 0
+$req: 1; $opt: 2; number of params: 0
+$req: 1; $opt: 2; number of params: 1
+$req: 1; $opt: 2; number of params: 2
+$req: 1; $opt: 2; number of params: 3
+</code></pre>
+
+<p><strong>参数解包功能(Argument unpacking via ...)</strong></p>
+<p>在调用函数的时候，通过 ... 操作符可以把数组或者可遍历对象解包到参数列表，这和Ruby等语言中的扩张(splat)操作符类似。 </p>
+<pre><code>&lt;?php
+function add($a, $b, $c) {
+    return $a + $b + $c;
+}
+
+$operators = [2, 3];
+echo add(1, ...$operators);
+</code></pre>
+
+<p>上面代码输出：</p>
+<pre><code>6
+</code></pre>
+
+<p><strong>导入函数和常量(use function and use const)</strong></p>
+<p>use 操作符开始支持函数和常量的导入。 use function 和 use const 结构的用法的示例： </p>
+<pre><code>&lt;?php
+namespace Name\Space {
+    const FOO = 42;
+    function f() { echo __FUNCTION__."\n"; }
+}
+
+namespace {
+    use const Name\Space\FOO;
+    use function Name\Space\f;
+    echo FOO."\n";
+    f();
+}
+</code></pre>
+
+<p>上面代码输出：</p>
+<pre><code>42
+Name\Space\f
+</code></pre>
+
+<p><strong>phpdbg</strong></p>
+<p>PHP自带了一个交互式调试器phpdbg，它是一个SAPI模块，更多信息参考 phpdbg文档 。</p>
+<p><strong>php://input可以被复用</strong></p>
+<p>php://input 开始支持多次打开和读取，这给处理POST数据的模块的内存占用带来了极大的改善。</p>
+<p><strong>大文件上传支持</strong></p>
+<p>可以上传超过2G的大文件。</p>
+<p><strong>GMP支持操作符重载</strong></p>
+<p>GMP 对象支持操作符重载和转换为标量，改善了代码的可读性，如： </p>
+<pre><code>&lt;?php
+$a = gmp_init(42);
+$b = gmp_init(17);
+
+// Pre-5.6 code:
+var_dump(gmp_add($a, $b));
+var_dump(gmp_add($a, 17));
+var_dump(gmp_add(42, $b));
+
+// New code:
+var_dump($a + $b);
+var_dump($a + 17);
+var_dump(42 + $b);
+</code></pre>
+
+<p><strong>新增gost-crypto哈希算法</strong></p>
+<p>采用CryptoPro S-box tables实现了 gost-crypto 哈希算法，详情参考 RFC 4357, section 11.2 。 </p>
+<p><strong>SSL/TLS改进</strong></p>
+<p>OpenSSL扩展新增证书指纹的提取和验证功能， openssl<em>x509</em>fingerprint() 用于提取X.509证书的指纹，SSL stream context 选项: capture_peer<em>cert 用于获取对方X.509证书； peer</em>fingerprint 用于断言对方证书和给定的指纹匹配。</p>
+<p>另外，可以通过SSL流上下文选项 crypto<em>method 指定加密方法，如SSLv3或TLS，目前支持的选项值包括STREAM</em>CRYPTO<em>METHOD<em>SSLv2</em>CLIENT, STREAM</em>CRYPTO<em>METHOD</em>SSLv3_CLIENT, STREAM<em>CRYPTO</em>METHOD<em>SSLv23<em>CLIENT (默认), or STREAM</em>CRYPTO</em>METHOD<em>TLS</em>CLIENT。</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+	/* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+	var disqus_shortname = 'share112sblog'; // required: replace example with your forum shortname
+
+	/* * * DON'T EDIT BELOW THIS LINE * * */
+	(function() {
+		var dsq = document.createElement('script'); 
+		dsq.type = 'text/javascript'; dsq.async = true;
+		dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+		(document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+	})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>

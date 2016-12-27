@@ -1,0 +1,247 @@
+---
+layout: default
+title: PHP5.5 新特性初探 (转)
+---
+<h3>{{ page.title }}</h3>
+<p>PHP5.5 还在早期的开发阶段，所以没有人知道最终的结果是什么样的。所有我在这里谈论的都只是提案。也就是说，不是所有下面列出的新特征都会加入PHP5.5。所以，不要太兴奋 :)</p>
+
+<p>新特性及提案列表 都相当大，而且不是按重要性排序。所以，如果你不想通读一遍的话，这里有四个特点我个人是最兴奋的:</p>
+
+<p>一个简单的密码散列API；标量类型提示；Getter和Setter；生成器</p>
+
+<p>现在，让我们来看看PHP5.5 可能会新增的功能：</p>
+
+<p>不再向后兼容</p>
+
+<p>首先，我们将有两个变化：</p>
+
+<p>1、放弃对Windows XP和2003 的支持</p>
+
+<p>PHP5.5 将不再支持Windows XP和2003，这些系统已经有十年的历史，所以PHP将不再提供支持。</p>
+
+<p>2、弃用e修饰符</p>
+
+<p>e修饰符是指示preg<em>replace函数用来评估替换字符串作为PHP代码，而不只是仅仅做一个简单的字符串替换。不出所料，这种行为会源源不断的出现安全问题。这就是为什么在PHP5.5 中使用这个修饰符将抛出一个弃用警告。作为替代，你应该使用preg</em>replace_callback函数。你可以从RFC找到更多关于这个变化相应的信息。</p>
+
+<p>新增函数和类</p>
+
+<p>接下来，我们将看到在计划之中的新增函数和类：</p>
+
+<p>boolval()</p>
+
+<p>PHP已经实现了strval、intval和floatval的函数。为了达到一致性将添加boolval函数。它完全可以作为一个布尔值计算，也可以作为一个回调函数。</p>
+
+<p>hash_pbkdf2()</p>
+
+<p>PBKDF2全称“Password-Based Key Derivation Function 2”，正如它的名字一样，是一种从密码派生出加密密钥的算法。这就需要加密算法，也可以用于对密码哈希。更广泛的说明和用法示例，请参阅 RFC。</p>
+
+<p>array_column()</p>
+
+<p>有一个 提议，新增array<em>column(或array</em>pluck)函数，它的表现如下:</p>
+
+<pre><code>        &lt;?php  
+
+$userNames = array_column($users, 'name');  
+// is the same as  
+$userNames = [];  
+foreach ($users as $user) {  
+    $userNames[] = $user['name'];  
+} 
+</code></pre>
+
+<p>像这样从数据库获取一列，但返回是数组。</p>
+
+<p>一个简单的密码散列API</p>
+
+<p>最近的密码泄漏(从LinkedIn等)显示，即使是大型网站也不知道如何正确地散列密码。几年前人们一直提倡使用bcrypt，但大多数人似乎仍然是使用完全不安全的sha1哈希值。</p>
+
+<p>我们认为这样做的原因可能是真的很难使用crypt函数的API。因此我们会采用一个新的、简单的API，用于安全的密码散列：</p>
+
+<pre><code>        &lt;?php  
+
+$password = "foo";  
+// creating the hash  
+$hash = password_hash($password, PASSWORD_BCRYPT);  
+// verifying a password  
+if (password_verify($password, $hash)) {  
+    // password correct!  
+} else {  
+    // password wrong!  
+} 
+</code></pre>
+
+<p>新的散列API提供了一些更多的特性，请参阅</p>
+
+<p>语言改变</p>
+
+<p>现在真正有趣的东西：新的语言特性和增强功能。</p>
+
+<p>常量引用</p>
+
+<p>“常量引用”意味着数组可以直接操作字符串和数组字面值。举两个例子:</p>
+
+<pre><code>        &lt;?php  
+
+function randomHexString($length) {  
+    $str = '';  
+    for ($i = 0; $i &lt; $length; ++$i) {  
+        $str .= "0123456789abcdef"[mt_rand(0, 15)]; // direct dereference of string  
+    }  
+}  
+function randomBool() {  
+    return [false, true][mt_rand(0, 1)]; // direct dereference of array  
+} 
+</code></pre>
+
+<p>我不认为在实践中会使用此功能，但它使语言更加一致。请参阅 RFC。</p>
+
+<p>调用empty()函数(和其他表达式)一起工作</p>
+
+<p>目前，empty()语言构造只能用在变量，而不能在其他表达式。在特定的代码像empty($this->getFriends())将会抛出一个错误。作为PHP5.5 这将成为有效的代码。更多信息请参阅 RFC。</p>
+
+<p>获取完整类别名称</p>
+
+<p>PHP5.3 中引入命名空间的别名类和命名空间短版本的功能。虽然这并不适用于字符串类名称:</p>
+
+<pre><code>        &lt;?php  
+
+use Some\Deeply\Nested\Namespace\FooBar;  
+// does not work, because this will try to use the global `FooBar` class  
+$reflection = new ReflectionClass('FooBar'); 
+</code></pre>
+
+<p>为了解决这个问题采用新的FooBar::class语法，它返回类的完整类别名称：</p>
+
+<pre><code>        &lt;?php 
+
+use Some\Deeply\Nested\Namespace\FooBar;  
+// this works because FooBar::class is resolved to "Some\\Deeply\\Nested\\Namespace\\FooBar"  
+$reflection = new ReflectionClass(FooBar::class); 
+</code></pre>
+
+<p>更多示例请参阅 RFC。</p>
+
+<p>参数跳跃</p>
+
+<p>如果你有一个函数接受多个可选的参数，目前没有办法只改变最后一个参数，而让其他所有参数为默认值。</p>
+
+<p>RFC上的例子，如果你有一个函数如下:</p>
+
+<pre><code>        function create_query($where, $order_by, $join_type='', $execute = false, $report_errors = true) { ... } 
+</code></pre>
+
+<p>那么有没有办法设置$report_errors=false，而其他两个为默认值。为了解决这个跳跃参数的问题而提出：</p>
+
+<pre><code>        create_query("deleted=0", "name", default, default, false); 
+</code></pre>
+
+<p>我个人不是特别喜欢这个提议。在我的眼睛里，代码需要这个功能，只是设计不当。函数不应该有12个可选参数。</p>
+
+<p>标量类型提示</p>
+
+<p>标量类型提示原本计划进入5.4，但由于缺乏共识而没有做。获取更多关于为什么标量类型提示没有做进PHP的信息，请参阅： 标量类型提示比你认为的更难。</p>
+
+<p>对于PHP5.5 而言，针对标量类型提示讨论又一次出现，我认为这是一个相当不错的 提议。</p>
+
+<p>它需要通过输入值来指定类型。例如：123,123.0,“123”都是一个有效的int参数输入，但“hello world”就不是。这与内部函数的行为一致。</p>
+
+<pre><code>        function foo(int $i) { ... }  
+
+foo(1);      // $i = 1  
+foo(1.0);    // $i = 1  
+foo("1");    // $i = 1  
+foo("1abc"); // not yet clear, maybe $i = 1 with notice  
+foo(1.5);    // not yet clear, maybe $i = 1 with notice  
+foo([]);     // error  
+foo("abc");  // error 
+</code></pre>
+
+<p>Getter 和 Setter</p>
+
+<p>如果你从不喜欢写这些getXYZ()和setXYZ($value)方法，那么这应该是你最受欢迎的改变。提议添加一个新的语法来定义一个属性的设置/读取:</p>
+
+<pre><code>        &lt;?php  
+
+class TimePeriod {  
+    public $seconds;  
+
+    public $hours {  
+        get { return $this-&gt;seconds / 3600; }  
+        set { $this-&gt;seconds = $value * 3600; }  
+    }  
+}  
+$timePeriod = new TimePeriod;  
+$timePeriod-&gt;hours = 10;  
+var_dump($timePeriod-&gt;seconds); // int(36000)  
+var_dump($timePeriod-&gt;hours);   // int(10) 
+</code></pre>
+
+<p>当然还有更多的功能，比如只读属性。如果你想要知道更多，请参阅 RFC。</p>
+
+<p>生成器</p>
+
+<p>目前，自定义迭代器很少使用，因为它们的实现，需要大量的样板代码。生成器解决这个问题，并提供了一种简单的样板代码来创建迭代器。</p>
+
+<p>例如，你可以定义一个范围函数作为迭代器:</p>
+
+<pre><code>        &lt;?php  
+
+function *xrange($start, $end, $step = 1) {  
+    for ($i = $start; $i &lt; $end; $i += $step) {  
+        yield $i;  
+    }  
+}  
+foreach (xrange(10, 20) as $i) {  
+    // ...  
+} 
+</code></pre>
+
+<p>上述xrange函数具有与内建函数相同的行为，但有一点区别：不是返回一个数组的所有值，而是返回一个迭代器动态生成的值。</p>
+
+<p>获取更深入的介绍请参阅 RFC。</p>
+
+<p>列表解析和生成器表达式</p>
+
+<p>列表解析提供一个简单的方法对数组进行小规模操作:</p>
+
+<pre><code>        $firstNames = [foreach ($users as $user) yield $user-&gt;firstName]; 
+</code></pre>
+
+<p>上述列表解析相等于下面的代码：</p>
+
+<pre><code>        $firstNames = [];  
+
+foreach ($users as $user) {  
+    $firstNames[] = $user-&gt;firstName;  
+} 
+</code></pre>
+
+<p>也可以这样过滤数组:</p>
+
+<pre><code>        $underageUsers = [foreach ($users as $user) if ($user-&gt;age &lt; 18) yield $user]; 
+</code></pre>
+
+<p>生成器表达式也很类似，但是返回一个迭代器(用于动态生成值)而不是一个数组。</p>
+
+<p>获取更多的例子请查看 邮件列表中的公告。</p>
+
+<p>结束语</p>
+
+<p>正如你所看到的，有很多很棒的新特征将加入到PHP5.5。不过，正如我所说的，PHP5.5还在早期的开发阶段，因此我们不确定上述新特征是否都能加入。</p>
+<p>{{ page.date | date_to_string }}</p>
+<hr />
+    <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'share112sblog'; // required: replace example with your forum shortname
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    

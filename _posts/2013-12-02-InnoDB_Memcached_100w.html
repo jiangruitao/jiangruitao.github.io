@@ -1,0 +1,47 @@
+---
+layout: default
+title: MySQL 性能：在 MySQL 5.7 中使用 InnoDB Memcached 插件实现每秒 100 万 QPS (转)
+---
+<h3>{{ page.title }}</h3>
+
+<p>在上周， Tomas 在 MySQL Percona Live Conference in London ，宣布了MySQL 5.7的版本--在只读的（Read-Only）测试环境，InnoDB 的 Memcached plugin的版本中，可以处理 每秒 1,000,000 次的查询。这个文章就是证实这个说法的。</p>
+<p>实际上，我至今也没有准确说法，到底可拓展性有多么的准确和有多少的性能限制在这里面..我们可以在最新的MySQL 5.7 中可以得到最大的性能提升，并且，并且可以让我们轻松的在“普通的”（normal）SQL 在只读的环境中（Read-Only workload） 测试到 500K QPS 。接下来，更多的性能提升在InnoDB Memcached Plugin代码中变为可能，然而，一切都是那么自然。尤其在Facebook团队，他们突破并展现出巨大的性能点。当然，Facebook给我们提供了一个测试case，我们也用它来成功的提高了我们代码。最终，同样的测试案例会在下面的测试评分结果中展示出来;-） </p>
+<p>这个测试是在”独立“（standalone）模式上测试的。（包括服务器，客户端都在上面运行）。所以，我们使用我们实验室最大的HW box - 一个48核的机器。这个服务器能够迅速的给我们指出一个存在的，或者潜在的性能瓶颈（最有趣的是，大部分他们都是在memcached代码上面）。然而，QPS 依赖于内存和CPU。因此，这台服务器是只有2Ghz的CPU 核，如果有存在其他更快的HW，你可能能得到更好的积分统计 ：-）</p>
+<p>现在，比较 最好-最好 的QPS结果如下： </p>
+<p><img src="http://static.oschina.net/uploads/img/201311/24085422_gDVX.png"></p>
+<p>我曾经把MySQL5.6放上神坛，给它打上“有史以来最好的结果”这样的标签;-))——由于一部分的Memcached代码性能提高也会反过来提升MySQL5.6的性能，所以我们也期望在5.6的下一版本中也能运行的良好。实际上，只需要MySQL5.7，你就可以达到一个很高的水平……</p>
+<p>在我在伦敦的Percona现场讨论会上，我曾经展示过下面这些图表——Memcached QPS是符合InnoDB的“dml_read/sec”的状态: </p>
+<p><img src="http://static.oschina.net/uploads/img/201311/24085425_ZRxU.png"></p>
+<p>这些图表代表着在“上一版”MySQL上所做的4个Memcached负载测试：
+ #1运行在48核的机器上……——我们遇到了与MVCC相关的服务器冲突（在最新版的MySQL5.7中已经修复了）
+    #2限制MySQL服务运行在16核的机器上，以降低这个冲突……——然后，我们遇到了事务冲突（这也在最新版的MySQL5.7中修复了）
+    #3调整Memcached plugin，在一个独立的事务内部保持一些读操作——神啊，救救我吧，我又遇到了一些其他的冲突……
+    #4限制MySQL服务运行在8核的机器上，看是否会降低冲突——事实表明，最大QPS有所提高（在32个用户的情况下），但是整体性能却更糟了…</p>
+<p>相反的，在最新版的MySQL5.7中，情况确实完全不同： </p>
+<p><img src="http://static.oschina.net/uploads/img/201311/24085426_d86j.png"></p>
+<p>这些图所表示的是两个测试：#1-运行在48核的机器上（不做太多评论;-)）
+    #2-调整了一些参数，在一个独立的内部事务中保持一些读取的操作，结果只有在QPS的峰值上稍微好点，其他方面没有什么区别。</p>
+<p>接下来为了更好的感受到QPS的差距，我们将这些测试结果放在一个图表中：</p>
+<p><img src="http://static.oschina.net/uploads/img/201311/24085427_q503.png"></p>
+<p>你可以更形象的看到这两者的不同。</p>
+<p>图表的左半部分曲线代表的QPS水平都是在“旧版”的MySQL5.6/5.7上得到的。
+   然后右半部分的曲线是在最新版的MySQL5.7上得到的。</p>
+<p>这项工作仍在进展中，关于在这个最新的MySQL 5.7版本中我们实现的巨大进步，我会让Sunny 和 Jimmy给你们提供其中所有深入的细节。</p>
+<p>我不知道这里的性能极限在于哪里。可能只存在于HW（HardWare）层面。我也不知道是否有足够庞大的HW来观察它;-)——现在经由一个单独的1Gbit网络链接，我们已经观察到超过700K QPS的性能了，当这个来自于单独网络链路的极限峰值到达时，主要的麻烦却来自于客户端处理程序，而不是服务器——所以，看上去相比较“原始的”Memcached本身来说，Memcached @InnoDB具有更好的伸缩性;-)——那么，当有几个网络链接启用（或者仅仅只是使用更快速的网卡）的时候可能会有什么样的性能呢——还有许多东西需要去探索发掘的！而且RW（ReadWrite）工作负载性能也是另一项挑战;-)</p>
+
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+	/* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+	var disqus_shortname = 'share112sblog'; // required: replace example with your forum shortname
+
+	/* * * DON'T EDIT BELOW THIS LINE * * */
+	(function() {
+		var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+		dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+		(document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+	})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>

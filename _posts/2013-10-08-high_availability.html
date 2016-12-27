@@ -1,0 +1,112 @@
+---
+layout: default
+title: 高可用集群相关概念 (转)
+---
+<h3>{{ page.title }}</h3>
+
+<p>高可用集群相关概念</p>
+<p>通俗讲：高可用，指的是我们的服务对网络上其他人，在各种极端条件下还能可用。
+这里突出三个重点: 网络，服务，极端条件</p>
+<p>网络：互联网上所有的活动都是通过数据在网络上的传输来完成的。
+服务：用户在网上使用的各种应用，最后在技术上，都归纳为 "服务"
+极端条件: 可能有：高并发，恶劣天气，断电，恶意攻击等.</p>
+<p>为了应对各种情况。需要的是弄清楚问题之所在，瓶颈在哪里，然后再加以处理。比如为防止断电，可以在不同的机房进行部署；为防止恶意攻击，对防火墙进行额外的投入；为解决高并发，则可进行负载均衡。</p>
+<p>这里主要讨论高并发,负载均衡的话题。</p>
+<p>思路:
+通过增加机器，用多台机器的集群来缓解服务器压力.</p>
+<p>难点:
+1.多台机器的分工,协调.
+2.可伸缩，容易扩展，易管理
+如: 
+1.以何种规则来分配请求数量.在哪里进行分配
+2.集群中某台机器 down 了，若还是将请求转向它，就会出错.得有机制自动检查，除去不可用的机器，可用时再恢复。
+3.当前集群顶不住后，可轻松再加其它服务器进来</p>
+<p>七层协议</p>
+<p>1.应用层 ---- 应用软件协议,http, smtp
+2.展现层(表示层) ---- 
+3.会话层 ---- SOCKET
+4.传输层 ---- TCP, UDP
+5.网络层 ---- IP
+6.数据层 ---- 电信号,数字信号转换.网卡
+7.物理层 ---- 电缆等</p>
+<p>常见进行负载均衡的软/硬件有:</p>
+<h1>F5 BIG-IP</h1>
+<p>在第 4-7 层进行流量管理.可提供：负载均衡，应用交换，会话交换，状态监控，智能网络地址转换，高级路由，SSL加速，智能HTTP压缩，TCP优化，内容缓冲，连接加速，高速缓存，Cookie 加密，DDos, SYN Flood 攻击保护等等功能。很全面，很强大。所以非常贵。十多万，甚至数十万一套。</p>
+<h1>LVS</h1>
+<p>linux vitri server
+将多台服务器划分成不同的职责，进行分工，然后加入自动监控，和资源管理.结构图是:
+用户---&gt;网络---&gt;虚拟IP--&gt;代理服务器主/备---&gt;真实服务器集群--&gt;数据库/文件系统集群</p>
+<p>可以看到，该结构主要分三部分:
+1.代理.
+通过软件将请求用特定算法分配到真实服务器集群中的一个节点上.
+2.真实服务器集群.
+可以提供 Ftp, Http, Smtp 等服务
+3.存储集群
+可能是数据库集群，或网络文件系统，分布式文件系统.使集群能快速的共享相同的内容.提供相同的服务.</p>
+<p>要注意的是，在用户的眼中，这个结构是看不见的，他们只知道和一个域名，一个地址打交道。不知道这个地址后面可能是几千台服务器。</p>
+<h2>虚拟 IP</h2>
+<p>现在已经拥有一个公网 IP. 我们要访问一台服务器上的资源，只需要将该 IP 绑定到该台服务器上，然后进行资源的映射。虚拟 IP 技术是指在 N 台机器上都绑定该 IP ,然后通过其它软件去控制将请求导到哪台机器上。不管到哪台机器上，因为它已经绑定了该IP的，请求都能正常响应。由于 TCP/IP 数据传输时，数据包里包含了 IP, MAC, 内容等数据。而 MAC 是一致的，所以要实现请求的分组(即 虚拟 IP 动态转移), 需要对 TCP/IP 包的内容进行修改。Keepalived 即可实现该功能。
+对用户来说是和同一个IP打交道，实际上背后是N台机器。</p>
+<h2>Nginx 代理</h2>
+<p>它是基于应用软件的反向代理的功能.也就是说是 "七层负载均衡" 且能检查节点是否存活,配置简单，完全免费。也支持 GZIP 压缩，节省带宽。
+缺点是目前只支持 HTTP 和 Mail 的负载均衡.对普通的公司来说足够了。</p>
+<h2>Keepalived</h2>
+<p>它是 LVS 结构中的一环.用来实现 LVS 结构中各服务器故障隔离及代理机器主备切换的。它类似一个 三，四，五层的交换机制的软件。Keepalived 有一个服务器列表，当它检查到有机器有故障时，就将它从列表中去除，正常后再加到列表中。这些都是全自动的，人工只需要修复坏的机器即可。
+所以，如果要实现主从结构，集群结构，它是很好用的。</p>
+<h2>Heartbeat</h2>
+<p>配置要麻烦点，但功能很实用。常用在主备的结构中。它可以检测主备的健康状况，如果主机器挂掉，备机马上按管主机的 IP，接着提供服务。</p>
+<h2>DRBD 高可用块设备</h2>
+<p>提供数据实时同步功能。支持三种复制协议:
+a.异步复制协议.主节点完成本地写操作，就把要复制的数据包存放到本地 TCP 缓存中。但当出现故障时，可能会丢失数据
+b.内存同步.
+c.同步复制.</p>
+<h2><strong>Session 同步</strong></h2>
+<p>session 是由应用服务器维持的一个服务器端的存储空间，用户在连接服务器时，服务器会生成一个唯一的 SessionId, 做为一个 key, 它对应的 value 存在服务器上。</p>
+<p>SessionId 是存在用户浏览器的 Cookie 中的，每次请求页面，都会将该值传到服务器。服务器去 session 存储空间查找该值对应的值，来进行一些身份验证，数据读取。所以你在浏览器上登录后，若清空 Cookie, 就要重新登录了。因为这时候没有 SessionId 传过去，服务器认为你是新用户在访问。</p>
+<p>当我们用集群来解决访问压力时，可能会出现如下情况：
+将整体服务划分成小块服务，然后放在二级域名中。(新浪新闻，新浪星座等都是单独的二级域名)部署到多台服务器上。多个频道共享一组服务器。</p>
+<p>而在 PHP 中，session 默认是以文件的形式保存在本地服务器的磁盘上的(当然也可以选择存在 DB 中).这样的结果就是，SessionId 在不同机器上不一致，用户可能会访问的时候不停的登录。因为服务器不能去访问其它机器上的 Session.为了解决这种情况方法就产生了：
+1.将 Session 的数据加密后存在 Cookie 中.
+这样很省事，但由于每次请求都会提交 Cookie 中的内容，所以这样会占用一定的带宽，而且由于 http 请求头长度的限制，Cookie 中存放不了太多的东西。另外还需要进行加密解密，开销也是不小的.</p>
+<p>2.基于数据库的 Session 共享
+将 Session 存在 DB 中，各服务器就可共享了。通常选用内存表 Heap,以提高 Session 操作的读写效率。缺点是数据库的性能可能会成为站点的瓶颈。同时，Session 的变更频繁，要选用行级锁的引擎。并且要注意删除超时的 Session</p>
+<p>3.基于 Memcache 的 Session 共享
+Session 通过 SessionId 来关联存储的形式和 Memcache 完全吻合，而且 Memcache 就有数据过期机制，而且这货效率高。</p>
+<p>总结: Memcache 和 MySQL 虽然都可以解决，但实际上，它们的效率也会成为整个系统的瓶颈。所以，最后不要出现需要 Session 共享的情况，也就是，和用户通信的，尽量保持在一台机器上。</p>
+<h2>会话保持</h2>
+<p>在典型的电子商务系统，或需要进行用户身份认证的在线系统中。一个客户要与服务器连着几次交互才能完成一笔交易或一个请求。对于这样的几个请求，负载均衡的时候就不能把它分散到不同的服务器上了。这种会话保持机制的实现:</p>
+<p>Nginx 的实现:</p>
+<p>upstream backend{</p>
+<p>ip_hash;</p>
+<p>server 192.168.1.10:80 weight=4 max<em>fails=2 fail</em>timeout=30s;</p>
+<p>server 192.168.1.11:80 weight=2 max<em>fails=2 fail</em>timeout=30s;</p>
+<p>}
+upstream 模块的 ip_hash 机制能够将某个IP的请求定向到同一台服务器上。</p>
+<p>location /
+{</p>
+<h1>如果后端服务器返回 502,504,超时等.将自动把请求转发到 upstream 池中的另一台服务器中实现故障转移</h1>
+<p>proxy<em>next</em>upstream http_502 http<em>504 error timeout invalid</em>header</p>
+<p>proxy_pass http://backend;</p>
+<p>proxy<em>set</em>header Host www.mydomain.jp</p>
+<p>proxy<em>set</em>header X-Real-IP $remote_addr;</p>
+<p>proxy<em>set</em>header X-Forwarded-For $remote_addr;</p>
+<p>}</p>
+<p>如果不加 proxy<em>set</em>header, 直接服务器上接收到请求的日志中会发现IP全是代理机器的IP。加上后会是用户实际的IP.</p>
+<p>可参照:
+http://blog.sina.com.cn/s/blog_5f54f0be0100zvf5.html</p>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+	/* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+	var disqus_shortname = 'share112sblog'; // required: replace example with your forum shortname
+
+	/* * * DON'T EDIT BELOW THIS LINE * * */
+	(function() {
+		var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+		dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+		(document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+	})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>

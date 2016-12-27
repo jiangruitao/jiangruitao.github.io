@@ -1,0 +1,58 @@
+---
+layout: default
+title: MySQL 5.7.2 发布，增强性能和可扩展性 (转)
+---
+<h3>{{ page.title }}</h3>
+
+<p>甲骨文近日发布了MySQL 5.7分支的最新的开发里程碑版本（DMR版）——MySQL 5.7.2。该版本提供了更快的连接速度，更高的事务吞吐量，提升了复制速度，带来了内存仪表和其他增强功能，从而实现更高的性能和增强的可管理性。</p>
+
+<p><img src="http://www.php100.com/uploadfile/2013/0923/20130923085633764.jpg" alt="\"></p>
+
+<ol>
+<li><p>性能和可扩展性增强 </p>
+
+<p>MySQL 5.7.2 DMR版本提供了：</p>
+
+<p>针对InnoDB<strong>进行只读查询的Sysbench测试中，速度可达每秒500,000次查询，为之前（250,000次）的两倍</strong></p>
+
+<p>线性扩展到64 CPU线程</p>
+
+<p>改进的复制吞吐量：在线程中使用新的多线程事务性的复制事件处理程序，并可以在并行的工作线程中运行复杂的事务</p></li>
+<li><p>可管理性增强</p>
+
+<p>改进了数据表的在线修改功能：可在线重命名索引和扩大varchar的数据类型</p>
+
+<p>新增的内存仪表：<strong>支持跟踪mysqld中的内存分配和使用情况</strong></p>
+
+<p>存储程序仪表：可提供存储程序内部指令的执行细节</p>
+
+<p>可使用GET STACKED DIAGNOSTICS作为新的工具，来创建和清理存储程序中的诊断信息</p>
+
+<p>改进了触发器的动态控制：<strong>支持在同一个表中对一个事件类型应用多个触发器</strong></p>
+
+<p>实时的执行分析</p>
+
+<p>改进了JSON Explain Data：可以在优化器中添加总查询成本、单表查询成本、总数据量等参数来获得更详细的信息</p></li>
+<li><p>其他</p>
+
+<p>MySQL 5.7.2 DMR还<strong>提供了无损半同步复制功能，确保事务只被提交到存储引擎，并在从服务器确认收到后才在主服务器中具体化</strong>。</p>
+
+<p><strong>MySQL Utilities 1.4.0中的mysqlfabric工具允许通过分片来进行扩展</strong>。</p>
+
+<p>多源MySQL复制：<strong>允许一个从服务器（slave）从多个主服务器（master）中聚合数据</strong>。</p></li></ol>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+	/* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+	var disqus_shortname = 'share112sblog'; // required: replace example with your forum shortname
+
+	/* * * DON'T EDIT BELOW THIS LINE * * */
+	(function() {
+		var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+		dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+		(document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+	})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>

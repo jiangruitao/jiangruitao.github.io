@@ -1,0 +1,96 @@
+---
+layout: default
+title: web系统性能方案全面总结 (转)
+---
+<h3>{{ page.title }}</h3>
+<p>全面列举下web系统中前后台用到的各种性能提升方案: 尤其适合PHP系统</p>
+
+<p>只是列举了下, 后续慢慢来分开写吧, 很多东西我们已经用到了.</p>
+
+<p>一. 服务器端: </p>
+
+<p>数据库层:
+1. 数据库性能优化:(设计方案,索引,查询缓存,反范式化设计)</p>
+
+<ol>
+<li>使用NoSQL数据库(mongoDB, 这个开源的很多) </li>
+</ol>
+
+<p>逻辑处理层:</p>
+
+<ol>
+<li>web压力测试(吞吐率, ab或者siege工具)</li>
+<li>动态内容缓存(文件缓存,APC缓存,扩展k/v缓存)</li>
+<li>静态化动态内容</li>
+<li>分布式缓存(memcache, redis)</li>
+<li>opcode编译缓存(APC, xcache)</li>
+<li>浏览器缓存(Expire header) </li>
+</ol>
+
+<p>宿主环境层(web服务器,Apache): </p>
+
+<ol>
+<li>web服务器缓存(mod<em>disk</em>cache, mod<em>file</em>cache:文件描述符缓存)</li>
+<li>传输加速(apache:mod_deflate启用, php自主gzip压缩)</li>
+<li>web组件分离 (均衡web负载, 最大化浏览器多线程下载)</li>
+<li>xdebug瓶颈分析</li>
+</ol>
+
+<p>二.前台: </p>
+
+<ol>
+<li>Ajax
+优化方案:</li>
+<li>减少http请求(多图合一, 合并静态组件, 图片延时加载)</li>
+<li>使用内容分发网络(和web组建分离类似, 激发浏览器并发, 分担web服务器负载)</li>
+<li>启动浏览器缓存(添加Expire头信息)</li>
+<li>压缩静态组件(等同服务器压缩传输)</li>
+<li>将css放在页面顶部</li>
+<li>将js放在页面底部</li>
+<li>避免css表达式</li>
+<li>外部引用js和css</li>
+</ol>
+
+<p>10.减少DNS查询(DNS缓存,TTL设置, Keep-alive, 使用更少的域名, 同域名内静态文件加载使用/代替域名)</p>
+
+<p>11.简化压缩静态js和css</p>
+
+<p>12.避免重定向(这里指静态资源的获取过程)</p>
+
+<p>13.去除多余的js</p>
+
+<p>14.配置ETags</p>
+
+<p>15.缓存ajax结果</p>
+
+<p>16.DNS预取(<link rel="dns-prefetch" href="//预取域名">)</p>
+
+<p>17.资源预取(内联img标签, <link rel="prefetch" href="图片地址">)</p>
+
+<p>18.渐进的JPEG(导出jpeg图片时勾选对应选项)</p>
+
+<p>三. 负载均衡:
+1. web负载均衡(URL重定向, DNS解析, 代理服务器)</p>
+
+<ol>
+<li>内容分发与同步(组件分离限制突破)</li>
+<li>分布式文件系统</li>
+<li>数据库负载均衡(读写分离,垂直分区,水平分区)</li>
+<li>分布式计算(Gearman) </li>
+</ol>
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+	/* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+	var disqus_shortname = 'share112sblog'; // required: replace example with your forum shortname
+
+	/* * * DON'T EDIT BELOW THIS LINE * * */
+	(function() {
+		var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+		dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+		(document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+	})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>

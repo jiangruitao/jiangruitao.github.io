@@ -1,0 +1,73 @@
+---
+layout: default
+title: 使用Redis bitmap进行活跃用户统计(转)
+---
+<h3>{{ page.title }}</h3>
+<p>http://blog.nosqlfan.com/html/3501.html</p>
+ <p>本文来自Spool的开发者博客，描述了Spool利用Redis的bitmaps相关的操作，进行网站活跃用户统计工作。</p>
+<p>Redis支持对String类型的value进行基于二进制位的置位操作。通过将一个用户的id对应value上的一位，通过对活跃用户对应的位进行置位，就能够用一个value记录所有活跃用户的信息。如下图所未，下图中的bitmap有9个位被置为1，表示这9个位上对应的用户是今天的活跃用户。其中第15位表示uid为15的用户，第一位表示uid为0的用户。（如果你的uid不是从1开始的，比如从100000开始，实际上你也可以相应的用uid减去初始值来表示其位数，比如1000000用户对应到bitmap的第一位）</p>
+<p><img src="http://pic.yupoo.com/iammutex/Byy77iCL/y8Xaf.png"></p>
+<p>具体的代码类似下面这样：</p>
+<pre><code>redis.setbit(play:yyyy-mm-dd, user_id, 1)
+</code></pre>
+
+<p>这样一次记录的复杂度是O(1)，在Redis中速度非常快。
+而我们通过每天换用一个不同的key来将每天的活跃用户状态记录分开存。并且可以通过一些与或运算计算出N天活跃用户，和连接N天活跃用户这样的统计数据。
+如下图，第一行表示星期一的活跃用户情况，第二行表示周二的，以此类推。为样我们通过对N天的活跃用户记录取并集操作，就能得出在N天内活跃过的用户列表。</p>
+<p><img src="http://pic.yupoo.com/iammutex/Byy77be7/8MsRr.png"></p>
+<p>下面表格表示对应一天，一周，一个月统计时所花费的时间。
+    Period 	Time (ms)
+    Daily 	50.2
+    Weekly 	392.0
+    Monthly 	1624.8</p>
+<p>下面是具体的java代码片断：</p>
+<p>1.算出一天的活跃用户数量</p>
+<pre><code>import redis.clients.jedis.Jedis;
+import java.util.BitSet;
+...
+Jedis redis = new Jedis("localhost");
+..
+ public int uniqueCount(String action, String date) {
+    String key = action + ":" + date;
+    BitSet users = BitSet.valueOf(redis.get(key.getBytes()));
+    return users.cardinality();
+ }  
+</code></pre>
+
+<p>2.计算某几个内活跃用户的数量（某一天活跃就算，所以是取并集）</p>
+<pre><code>import redis.clients.jedis.Jedis;
+import java.util.BitSet;
+...
+ Jedis redis = new Jedis("localhost");
+...
+public int uniqueCount(String action, String... dates) {
+    BitSet all = new BitSet();
+    for (String date : dates) {
+        String key = action + ":" + date;
+        BitSet users = BitSet.valueOf(redis.get(key.getBytes()));
+        all.or(users);
+    }
+    return all.cardinality();
+ }
+</code></pre>
+
+<p>具体的用法还很多，比如你还可以对独特终端的用户单独记一个bitmap，这样就可以统计不同终端用户的活跃情况。有的同学会说用set也能实现同样的效果。但使用set在内存使用量上是会大很多的。</p>
+<p>如果你还有其它Redis好玩的应用场景。也欢迎通过NoSQLFan分享给更多朋友。</p>
+
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+	/* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+	var disqus_shortname = 'share112sblog'; // required: replace example with your forum shortname
+
+	/* * * DON'T EDIT BELOW THIS LINE * * */
+	(function() {
+		var dsq = document.createElement('script'); 
+		dsq.type = 'text/javascript'; dsq.async = true;
+		dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+		(document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+	})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>

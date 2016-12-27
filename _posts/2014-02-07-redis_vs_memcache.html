@@ -1,0 +1,128 @@
+---
+layout: default
+title: Redis与Memcached的区别(转)
+---
+<h3>{{ page.title }}</h3>
+<p>Redis与Memcached的区别(转)
+ 如果简单地比较Redis与Memcached的区别，大多数都会得到以下观点：
+1 Redis不仅仅支持简单的k/v类型的数据，同时还提供list，set，hash等数据结构的存储。
+2 Redis支持数据的备份，即master-slave模式的数据备份。
+3 Redis支持数据的持久化，可以将内存中的数据保持在磁盘中，重启的时候可以再次加载进行使用。</p>
+<p>在Redis中，并不是所有的数据都一直存储在内存中的。这是和Memcached相比一个最大的区别（我个人是这么认为的）。</p>
+<p>Redis只会缓存所有的key的信息，如果Redis发现内存的使用量超过了某一个阀值，将触发swap的操作，Redis根据“swappability = age*log(size<em>in</em>memory)”计算出哪些key对应的value需要swap到磁盘。然后再将这些key对应的value持久化到磁盘中，同时在内存中清除。这种特性使得Redis可以保持超过其机器本身内存大小的数据。当然，机器本身的内存必须要能够保持所有的key，毕竟这些数据是不会进行swap操作的。</p>
+<p>同时由于Redis将内存中的数据swap到磁盘中的时候，提供服务的主线程和进行swap操作的子线程会共享这部分内存，所以如果更新需要swap的数据，Redis将阻塞这个操作，直到子线程完成swap操作后才可以进行修改。</p>
+<p>可以参考使用Redis特有内存模型前后的情况对比：</p>
+<p>VM off: 300k keys, 4096 bytes values: 1.3G used
+VM on: 300k keys, 4096 bytes values: 73M used
+VM off: 1 million keys, 256 bytes values: 430.12M used
+VM on: 1 million keys, 256 bytes values: 160.09M used
+VM on: 1 million keys, values as large as you want, still: 160.09M used </p>
+<p>当从Redis中读取数据的时候，如果读取的key对应的value不在内存中，那么Redis就需要从swap文件中加载相应数据，然后再返回给请求方。这里就存在一个I/O线程池的问题。在默认的情况下，Redis会出现阻塞，即完成所有的swap文件加载后才会相应。这种策略在客户端的数量较小，进行批量操作的时候比较合适。但是如果将Redis应用在一个大型的网站应用程序中，这显然是无法满足大并发的情况的。所以Redis运行我们设置I/O线程池的大小，对需要从swap文件中加载相应数据的读取请求进行并发操作，减少阻塞的时间。</p>
+<p>redis、memcache、mongoDB 对比
+从以下几个维度，对redis、memcache、mongoDB 做了对比，欢迎拍砖</p>
+<p><strong>1、性能</strong>
+都比较高，性能对我们来说应该都不是瓶颈
+总体来讲，TPS方面redis和memcache差不多，要大于mongodb</p>
+<p><strong>2、操作的便利性</strong>
+memcache数据结构单一
+redis丰富一些，数据操作方面，redis更好一些，较少的网络IO次数
+mongodb支持丰富的数据表达，索引，最类似关系型数据库，支持的查询语言非常丰富</p>
+<p><strong>3、内存空间的大小和数据量的大小</strong>
+redis在2.0版本后增加了自己的VM特性，突破物理内存的限制；可以对key value设置过期时间（类似memcache）
+memcache可以修改最大可用内存,采用LRU算法
+mongoDB适合大数据量的存储，依赖操作系统VM做内存管理，吃内存也比较厉害，服务不要和别的服务在一起</p>
+<p><strong>4、可用性（单点问题）</strong></p>
+<p>对于单点问题，
+redis，依赖客户端来实现分布式读写；主从复制时，每次从节点重新连接主节点都要依赖整个快照,无增量复制，因性能和效率问题，
+所以单点问题比较复杂；不支持自动sharding,需要依赖程序设定一致hash 机制。
+一种替代方案是，不用redis本身的复制机制，采用自己做主动复制（多份存储），或者改成增量复制的方式（需要自己实现），一致性问题和性能的权衡</p>
+<p>Memcache本身没有数据冗余机制，也没必要；对于故障预防，采用依赖成熟的hash或者环状的算法，解决单点故障引起的抖动问题。</p>
+<p>mongoDB支持master-slave,replicaset（内部采用paxos选举算法，自动故障恢复）,auto sharding机制，对客户端屏蔽了故障转移和切分机制。</p>
+<p><strong>5、可靠性（持久化）</strong></p>
+<p>对于数据持久化和数据恢复，</p>
+<p>redis支持（快照、AOF）：依赖快照进行持久化，aof增强了可靠性的同时，对性能有所影响</p>
+<p>memcache不支持，通常用在做缓存,提升性能；</p>
+<p>MongoDB从1.8版本开始采用binlog方式支持持久化的可靠性</p>
+<p><strong>6、数据一致性（事务支持）</strong></p>
+<p>Memcache 在并发场景下，用cas保证一致性</p>
+<p>redis事务支持比较弱，只能保证事务中的每个操作连续执行</p>
+<p>mongoDB不支持事务</p>
+<p><strong>7、数据分析</strong></p>
+<p>mongoDB内置了数据分析的功能(mapreduce),其他不支持</p>
+<p><strong>8、应用场景</strong>
+redis：数据量较小的更性能操作和运算上</p>
+<p>memcache：用于在动态系统中减少数据库负载，提升性能;做缓存，提高性能（适合读多写少，对于数据量比较大，可以采用sharding）</p>
+<p>MongoDB:主要解决海量数据的访问效率问题 ****</p>
+
+
+
+
+<p><strong>Redis是什么？两句话可以做下概括：</strong></p>
+<ol>
+<li>是一个完全开源免费的key-value内存数据库</li>
+<li>通常被认为是一个数据结构服务器，主要是因为其有着丰富的数据结构 strings、map、 list、sets、 sorted sets</li>
+</ol>
+<p>Redis不是什么？同样从两个方面来做下对比：</p>
+<ol>
+<li>
+<p>不是sql server、mySQL等关系型数据库，主要原因是：</p>
+</li>
+<li>
+<p>redis目前还只能作为小数据量存储（全部数据能够加载在内存中） ，海量数据存储方面并不是redis所擅长的领域</p>
+</li>
+<li>
+设计、实现方法很不一样.关系型数据库通过表来存储数据，通过SQL来查询数据。而Redis通上述五种数据结构来存储数据，通过命令 来查询数据
+-不是Memcached等缓存系统，主要原因有以下几个：
+<ul>
+<li>网络IO模型方面：Memcached是多线程，分为监听线程、worker线程，引入锁，带来了性能损耗。Redis使用单线程的IO复用模型，将速度优势发挥到最大，也提供了较简单的计算功能</li>
+<li>内存管理方面：Memcached使用预分配的内存池的方式，带来一定程度的空间浪费 并且在内存仍然有很大空间时，新的数据也可能会被剔除，而Redis使用现场申请内存的方式来存储数据，不会剔除任何非临时数据 Redis更适合作为存储而不是cache</li>
+<li>数据的一致性方面：Memcached提供了cas命令来保证.而Redis提供了事务的功能，可以保证一串 命令的原子性，中间不会被任何操作打断</li>
+<li>存储方式方面：Memcached只支持简单的key-value存储，不支持枚举，不支持持久化和复制等功能</li>
+</ul>
+</li>
+</ol>
+<p>一句话小结一下：<strong>Redis是一个高性能的key-value数据库。 redis的出现，很大程度补偿了memcached这类key/value存储的不足，在部分场合可以对关系数据库起到很好的补充作用。</strong></p>
+<p><strong>Redis有什么用？</strong></p>
+<p>只有了解了它有哪些特性，我们在用的时候才能扬长避短，为我们所用：</p>
+<ol>
+<li>速度快：使用标准C写，所有数据都在内存中完成，读写速度分别达到10万/20万</li>
+<li>持久化：对数据的更新采用Copy-on-write技术，可以异步地保存到磁盘上，主要有两种策略，一是根据时间，更新次数的快照（save 300 10 ）二是基于语句追加方式(Append-only file，aof)</li>
+<li>自动操作：对不同数据类型的操作都是自动的，很安全</li>
+<li>快速的主--从复制，官方提供了一个数据，Slave在21秒即完成了对Amazon网站10G key set的复制。</li>
+<li>Sharding技术： 很容易将数据分布到多个Redis实例中，数据库的扩展是个永恒的话题，在关系型数据库中，主要是以添加硬件、以分区为主要技术形式的纵向扩展解决了很多的应用场景，但随着web2.0、移动互联网、云计算等应用的兴起，这种扩展模式已经不太适合了，所以近年来，像采用主从配置、数据库复制形式的，Sharding这种技术把负载分布到多个特理节点上去的横向扩展方式用处越来越多。</li>
+</ol>
+<p><strong>这里对Redis数据库做下小结：</strong></p>
+<ol>
+<li>提高了DB的可扩展性，只需要将新加的数据放到新加的服务器上就可以了</li>
+<li>提高了DB的可用性，只影响到需要访问的shard服务器上的数据的用户</li>
+<li>提高了DB的可维护性，对系统的升级和配置可以按shard一个个来搞，对服务产生的影响较小</li>
+<li>小的数据库存的查询压力小，查询更快，性能更好</li>
+</ol>
+<p>写到这里，可能就会有人急不可待地想用它了，那怎么用呢？可以直接到官方文档，里面帮我们整理好了各个语言环境下的客户端，主要有Ruby、Python、 PHP、Perl、Lua、Java、C#....有几种语言，我也没见过，所以就不多说了，你懂的....</p>
+<p><strong>最后，把我使用过程中的一些 经验与教训，做个小结：</strong></p>
+<ol>
+<li>要进行Master-slave配置，出现服务故障时可以支持切换。</li>
+<li>在master侧禁用数据持久化，只需在slave上配置数据持久化。</li>
+<li>物理内存+虚拟内存不足，这个时候dump一直死着，时间久了机器挂掉。这个情况就是灾难！</li>
+<li>当Redis物理内存使用超过内存总容量的3/5时就会开始比较危险了，就开始做swap,内存碎片大</li>
+<li>当达到最大内存时，会清空带有过期时间的key，即使key未到过期时间.</li>
+<li>redis与DB同步写的问题，先写DB，后写redis，因为写内存基本上没有问题</li></ol>
+
+
+
+
+<hr />
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+	/* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+	var disqus_shortname = 'share112sblog'; // required: replace example with your forum shortname
+
+	/* * * DON'T EDIT BELOW THIS LINE * * */
+	(function() {
+		var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+		dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+		(document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+	})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
