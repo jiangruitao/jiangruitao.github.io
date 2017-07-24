@@ -3,14 +3,23 @@ layout: default
 title: 实时新闻观测
 ---
 <h3>{{ page.title }}</h3>
+<style type="text/css">
+    .iframe_item {
+        width: 33.3%; 
+        height: 620px; 
+        float: left;
+        border: 1px solid #ddd;
+
+    }
+</style>
 <div>
-    <div style="width: 33.3%; height: 520px;">
+    <div class="iframe_item">
         <iframe src="https://readhub.me"></iframe>
     </div>
-    <div style="width: 33.3%; height: 520px;">
+    <div class="iframe_item">
         <iframe src="http://www.bjnews.com.cn/realtime-page-1.html"></iframe>
     </div>
-    <div style="width: 33.3%; height: 520px;">
+    <div class="iframe_item">
         <iframe src="http://www.ftchinese.com"></iframe>
     </div>
 
